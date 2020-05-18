@@ -1,0 +1,540 @@
+#查看所有节点
+GET _cat/nodes
+GET _cat/plugins
+
+#手动创建Mapping
+PUT myindex1
+{
+  "mappings": {
+    "_doc":{
+      "properties":{
+        "class_id":{
+          "type":"keyword"
+        },
+        "name":{
+          "type":"keyword"
+        },
+        "age":{
+          "type":"integer"
+        }
+      }
+    }
+  }
+}
+
+#查询mapping
+GET myindex1/_mapping
+
+#存放数据
+PUT myindex1/_doc/1003
+{
+  "class_id":"191125",
+  "name":"longjun",
+  "age":"sasadasdas"
+}
+
+#查询数据
+GET myindex1/_search
+
+#自动创建Mapping(直接存放数据即可,会自动推断类型)
+PUT myindex2/_doc/1001
+{
+  "id":"191125",
+  "name":"qinshuo",
+  "sex":"male",
+  "favo":"female"
+}
+
+#查看mapping
+GET myindex2/_mapping
+
+#存放数据
+PUT myindex3/_doc/1001
+{
+  "id":191125,
+  "name":"小明同学",
+  "sex":true,
+  "birth":"2020-05-16"
+}
+
+#查看mapping
+GET myindex3/_mapping
+
+#存放数据
+PUT myindex4/_doc/1001
+{
+  "id":5,
+  "name":"小明同学",
+  "sex":true,
+  "birth":"2020-05-16"
+}
+
+#查看mapping
+GET myindex4/_mapping
+
+#查看分词情况(keyword类型不支持分词)
+GET _analyze
+{
+  "keyword":"我是程序员"
+}
+
+#查看分词情况,text
+GET _analyze
+{
+  "text":"我是程序员"
+}
+
+#查看分词情况,text,ik_smart
+GET _analyze
+{
+  "analyzer": "ik_smart",
+  "text":"我是程序员"
+}
+
+#查看分词情况,text,ik_max_word
+GET _analyze
+{
+  "analyzer": "ik_max_word",
+  "text":"跑步打篮球看小电影"
+}
+
+
+#查询案例数据准备
+PUT student
+{
+  "mappings": {
+    "_doc":{
+      "properties":{
+        "class_id":{
+          "type":"keyword"
+        },
+        "name":{
+          "type":"keyword"
+        },
+        "sex":{
+          "type":"keyword"
+        },
+        "age":{
+          "type":"integer"
+        },
+        "favo":{
+          "type":"text",
+          "analyzer":"ik_max_word"
+        }
+      }
+    }
+  }
+}
+
+PUT student/_doc/1001
+{
+  "class_id":"191125",
+  "name":"马烜",
+  "sex":"male",
+  "age":18,
+  "favo":"跑步打篮球看小电影"
+}
+
+PUT student/_doc/1002
+{
+  "class_id":"191125",
+  "name":"谢波",
+  "sex":"male",
+  "age":24,
+  "favo":"看小电影阅读"
+}
+
+PUT student/_doc/1003
+{
+  "class_id":"191125",
+  "name":"梁海洋",
+  "sex":"male",
+  "age":21,
+  "favo":"乒乓球羽毛球"
+}
+
+PUT student/_doc/1004
+{
+  "class_id":"191125",
+  "name":"孟圣洁",
+  "sex":"female",
+  "age":19,
+  "favo":"跑步打篮球"
+}
+
+PUT student/_doc/1005
+{
+  "class_id":"191125",
+  "name":"刘帅",
+  "sex":"female",
+  "age":17,
+  "favo":"跑步羽毛球"
+}
+
+PUT student/_doc/1006
+{
+  "class_id":"191125",
+  "name":"段会敏",
+  "sex":"male",
+  "age":22,
+  "favo":"敲代码打游戏"
+}
+
+PUT student/_doc/1007
+{
+  "class_id":"190218",
+  "name":"小明",
+  "sex":"male",
+  "age":30,
+  "favo":"跑步打篮球看小电影"
+}
+
+#Filter:全词匹配检索
+GET student/_search
+{
+  "query": {
+    "bool": {
+      "filter": {
+        "term": {
+          "favo": "跑步打篮球看小电影"
+        }
+      }
+    }
+  }
+}
+
+#Match:分词匹配检索
+GET student/_search
+{
+  "query": {
+    "match": {
+      "favo": "跑步打篮球看小电影"
+    }
+  }
+}
+
+#Fuzzy:模糊查询
+GET student/_search
+{
+  "query": {
+    "fuzzy": {
+      "sex": {
+        "value": "female"
+      }
+    }
+  }
+}
+
+#聚合查询:aggs
+GET student/_search
+{
+  "aggs": {
+    "min_age": {
+      "min": {
+        "field": "age"
+      }
+    }
+  }
+}
+
+GET student/_search
+{
+  "aggs": {
+    "countByClassId": {
+      "terms": {
+        "field": "class_id",
+        "size": 2
+      }
+    }
+  }
+}
+
+#分页查询
+GET student/_search
+{
+  "from": 2,
+  "size": 3
+}
+
+#性别为male并喜欢篮球的同学,各个班级的人数以及最大年纪
+#性别为male : filter
+#喜欢篮球   : match
+#各个班级的人数 ：term聚合组
+#最大年纪       : max聚合组
+GET student/_search
+{
+  "query": {
+    "bool": {
+      "filter": {
+        "term": {
+          "sex": "male"
+        }
+      },
+      "must": [
+        {
+          "match": {
+            "favo": "篮球"
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "maxAge": {
+      "max": {
+        "field": "age"
+      }
+    },
+    "countByClass":{
+      "terms": {
+        "field": "class_id",
+        "size": 10
+      }
+    }
+  }
+}
+
+POST student/_doc/1008
+{
+  "class_id":"190218",
+  "name":"张三",
+  "sex":"male",
+  "age":30,
+  "favo":"跑步打篮球看小电影"
+}
+
+POST student/_doc
+{
+  "class_id":"190218",
+  "name":"李四",
+  "sex":"female",
+  "age":20,
+  "favo":"跑步打篮球看小电影"
+}
+
+PUT student/_doc
+{
+  "class_id":"190218",
+  "name":"王五",
+  "sex":"female",
+  "age":20,
+  "favo":"跑步打篮球看小电影"
+}
+
+PUT student/_doc/1004
+{
+  "class_id":"191125",
+  "name":"孟圣洁",
+  "sex":"male",
+  "age":19,
+  "favo":"跑步打篮球"
+}
+
+GET student/_search
+{
+  "from": 0,
+   "size": 20
+}
+
+DELETE student/_doc/1004
+
+
+#建索引的同时创建别名
+PUT movie
+{
+  "aliases": {
+    "movie-query": {}
+  }, 
+  "mappings": {
+    "_doc":{
+      "properties":{
+        "id":{
+          "type":"keyword"
+        },
+        "name":{
+          "type":"text",
+          "analyzer":"ik_max_word"
+        }
+      }
+    }
+  }
+}
+
+PUT movie/_doc/1001
+{
+  "id":"001",
+  "name":"哈利波特"
+}
+
+PUT movie-query/_doc/1002
+{
+  "id":"002",
+  "name":"黑客帝国"
+}
+
+GET movie/_search
+GET movie-query/_search
+
+#给已经存在的索引创建别名
+GET _cat/indices
+GET student/_search
+POST _aliases
+{
+  "actions":[
+    {
+      "add":{
+        "index":"student",
+        "alias":"student-query"
+      }
+    }
+  ]
+}
+GET student-query2/_search
+POST _aliases
+{
+  "actions":[
+    {
+      "add":{
+        "index":"student",
+        "alias":"student-query2",
+        "filter": {
+          "term": {
+            "class_id": "191125"
+          }
+        }
+      }
+    }
+  ]
+}
+
+#删除索引的别名
+POST _aliases
+{
+  "actions": [
+    {
+      "remove": {
+        "index": "student",
+        "alias": "student-query2"
+      }
+    }
+  ]
+}
+
+#删除索引的已有别名并添加新的别名
+POST _aliases
+{
+  "actions": [
+    {
+      "remove": {
+        "index": "student",
+        "alias": "student-query"
+      }
+    },
+    {
+      "add": {
+        "index": "student",
+        "alias": "student-query3"
+      }
+    }
+  ]
+}
+GET student-query3/_search
+
+#查询别名信息列表
+GET _cat/aliases
+
+PUT movie_test1/_doc/1001
+{
+  "id":"001",
+  "name":"哈利波特"
+}
+GET movie_test1/_search
+GET movie_test1/_mapping
+
+#创建模板
+PUT _template/movie_template
+{
+  "index_patterns":["movie_temp*"],
+  "mappings":{
+    "_doc":{
+      "properties":{
+        "id":{
+          "type":"keyword"
+        },
+        "name":{
+          "type":"text"
+        }
+      }
+    }
+  }
+}
+PUT movie_temp_01/_doc/1001
+{
+  "id":"001",
+  "name":"哈利波特"
+}
+GET movie_temp_01/_mapping
+
+#创建模板的同时添加别名信息
+PUT _template/stu_template
+{
+  "index_patterns":["stu_temp*"],
+  "aliases":{
+    "stu_temp_query":{}
+  },
+  "mappings":{
+    "_doc":{
+      "properties":{
+        "id":{
+          "type":"keyword"
+        },
+        "name":{
+          "type":"text"
+        }
+      }
+    }
+  }
+}
+PUT stu_temp_01/_doc/1001
+{
+  "id":"001",
+  "name":"哈利波特"
+}
+GET stu_temp_01/_search
+
+PUT stu_temp_02/_doc/1002
+{
+  "id":"002",
+  "name":"罗恩"
+}
+GET stu_temp_query/_search
+
+#查看模板信息
+GET _cat/templates
+
+#查看某个模板的详情
+GET _template/stu_temp*
+
+
+
+GET student/_search
+{
+  "query": {
+    "bool": {
+      "filter": {
+        "term": {
+          "class_id": "191125"
+        }
+      }
+    }
+  },
+  "aggs": {
+    "maxAge": {
+      "max": {
+        "field": "age"
+      }
+    }
+  },
+  "from": 0,
+  "size": 20
+}
